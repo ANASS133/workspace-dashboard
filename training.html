@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0e17">
+    <meta name="description" content="Calisthenics Coach — Weekly Program, Live Workout Tracker & Progress History.">
+    <title>Calisthenics Coach</title>
+    <link rel="icon" href="./icons/app-icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@1.33.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="./assets/training.css?v=6">
+</head>
+<body>
+    <main class="app-wrapper">
+        <!-- Compact Top Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <a href="./index.html" class="nav-link-btn" title="Return to Dashboard">
+                    <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="./today.html" class="nav-link-btn" title="Focus / Today">
+                    <i data-lucide="zap" style="width: 14px; height: 14px;"></i>
+                    <span>Focus</span>
+                </a>
+                <a href="./study.html" class="nav-link-btn" title="Academy / Learning" style="color: #06b6d4;">
+                    <i data-lucide="graduation-cap" style="width: 14px; height: 14px;"></i>
+                    <span>Academy</span>
+                </a>
+                <span class="fajr-badge">🌅 Post-Fajr</span>
+            </div>
+            <div class="header-right">
+                <button type="button" class="icon-btn" id="soundToggleBtn" title="Toggle Sound FX" aria-label="Toggle Sound">
+                    <i data-lucide="volume-2" style="width: 15px; height: 15px;"></i>
+                </button>
+                <button type="button" class="icon-btn" id="themeToggleBtn" title="Toggle Theme" aria-label="Toggle Theme">
+                    <i data-lucide="sun" class="theme-sun" style="width: 15px; height: 15px;"></i>
+                    <i data-lucide="moon" class="theme-moon" style="width: 15px; height: 15px;"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- 3 Main Pages Navigation Bar -->
+        <nav class="main-nav" aria-label="Main Navigation">
+            <button type="button" class="nav-tab active" data-page="program">
+                <i data-lucide="calendar" style="width: 15px; height: 15px;"></i>
+                <span>Weekly Program</span>
+            </button>
+            <button type="button" class="nav-tab" data-page="workout">
+                <i data-lucide="dumbbell" style="width: 15px; height: 15px;"></i>
+                <span>Workout</span>
+            </button>
+            <button type="button" class="nav-tab" data-page="history">
+                <i data-lucide="line-chart" style="width: 15px; height: 15px;"></i>
+                <span>History &amp; Progress</span>
+            </button>
+        </nav>
+
+        <!-- ===============================================================
+             PAGE 1: WEEKLY PROGRAM
+             =============================================================== -->
+        <section class="page-view active" id="page-program" role="tabpanel">
+            <div class="week-calendar-header">
+                <button type="button" class="week-nav-btn" id="btnPrevWeek">← Prev Week</button>
+                <span class="week-title" id="weekCalendarTitle">Current Week</span>
+                <button type="button" class="week-nav-btn" id="btnNextWeek">Next Week →</button>
+            </div>
+
+            <div class="days-cards-list" id="daysCardsList">
+                <!-- 7 days rendered via JS -->
+            </div>
+        </section>
+
+        <!-- ===============================================================
+             PAGE 2: WORKOUT — LIVE PERFORMANCE COMPARISON
+             =============================================================== -->
+        <section class="page-view" id="page-workout" role="tabpanel">
+            <div class="workout-top-bar">
+                <div class="workout-bar-left">
+                    <span class="workout-current-title" id="workoutCurrentTitle">Tuesday · Push + ABS</span>
+                    <span class="workout-sub-info" id="workoutSubInfo">0/0 sets completed</span>
+                </div>
+                <div class="workout-bar-right">
+                    <div class="stopwatch-badge">
+                        <i data-lucide="clock" style="width: 13px; height: 13px;"></i>
+                        <span id="stopwatchClockDisplay">00:00</span>
+                    </div>
+                    <button type="button" class="btn-finish-workout" id="btnFinishWorkout">
+                        <i data-lucide="check" style="width: 14px; height: 14px;"></i>
+                        <span>Finish</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Exercises Container with Live 3-Line Comparison -->
+            <div id="liveExercisesContainer">
+                <!-- Rendered dynamically via JS -->
+            </div>
+        </section>
+
+        <!-- ===============================================================
+             PAGE 3: HISTORY & PROGRESS
+             =============================================================== -->
+        <section class="page-view" id="page-history" role="tabpanel">
+            <!-- Mode Switcher: By Date vs By Exercise -->
+            <div class="history-mode-switch">
+                <button type="button" class="btn-mode-tab active" id="btnModeDate">History by Date</button>
+                <button type="button" class="btn-mode-tab" id="btnModeExercise">Progression by Exercise</button>
+            </div>
+
+            <!-- MODE A: HISTORY BY DATE -->
+            <div id="modeDateSection">
+                <div class="history-sessions-list" id="historySessionsList">
+                    <!-- Chronological sessions rendered via JS -->
+                </div>
+            </div>
+
+            <!-- MODE B: HISTORY BY EXERCISE -->
+            <div id="modeExerciseSection" style="display: none;">
+                <div class="exercise-select-bar">
+                    <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-secondary);">Select Exercise</span>
+                    <select id="exerciseHistorySelect" class="opt-ctrl" style="min-width: 220px; font-weight: 600;">
+                        <option value="Push-ups">Push-ups</option>
+                        <option value="Pull-ups">Pull-ups</option>
+                        <option value="Assisted Dips">Assisted Dips</option>
+                        <option value="Pike Push-ups">Pike Push-ups</option>
+                        <option value="Backpack Squats">Backpack Squats</option>
+                        <option value="Australian Rows">Australian Rows</option>
+                        <option value="Hanging Knee Raises">Hanging Knee Raises</option>
+                        <option value="Reverse Crunches">Reverse Crunches</option>
+                        <option value="Plank">Plank</option>
+                        <option value="Dead Hang">Dead Hang</option>
+                        <option value="Sprints">Sprints</option>
+                    </select>
+                </div>
+
+                <div class="ex-progression-card">
+                    <div class="prog-diff-box" id="progDiffBox">
+                        <!-- Difference vs previous session rendered via JS -->
+                    </div>
+
+                    <div class="prog-chart-svg" id="progChartSvg">
+                        <!-- Clean chronological line chart rendered via JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Compact Floating Rest Timer Dock (During active workout) -->
+        <aside class="compact-rest-dock" id="compactRestDock" style="display: none;" aria-label="Rest Timer">
+            <span class="rest-clock" id="restClockNum">01:30</span>
+            <div class="rest-preset-chips">
+                <button type="button" class="btn-chip btn-rest-chip" data-seconds="30">30s</button>
+                <button type="button" class="btn-chip btn-rest-chip" data-seconds="45">45s</button>
+                <button type="button" class="btn-chip btn-rest-chip" data-seconds="60">60s</button>
+                <button type="button" class="btn-chip btn-rest-chip active" data-seconds="90">90s</button>
+                <button type="button" class="btn-chip btn-rest-chip" data-seconds="120">2m</button>
+            </div>
+            <div class="rest-dock-btns">
+                <button type="button" class="btn-dock-icon" id="btnRestPause" title="Pause / Resume Rest">
+                    <i data-lucide="pause" style="width: 14px; height: 14px;"></i>
+                </button>
+                <button type="button" class="btn-dock-icon" id="btnRestSkip" title="Skip Rest">
+                    <i data-lucide="skip-forward" style="width: 14px; height: 14px;"></i>
+                </button>
+            </div>
+        </aside>
+    </main>
+
+    <script src="./assets/training.js?v=6"></script>
+</body>
+</html>

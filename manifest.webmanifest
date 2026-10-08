@@ -1,0 +1,20 @@
+{
+  "name": "Workspace Dashboard",
+  "short_name": "Workspace",
+  "description": "A focused workspace for tasks, habits, objectives, and personal progress.",
+  "id": "./index.html",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fcfcfc",
+  "theme_color": "#fcfcfc",
+  "icons": [
+    {
+      "src": "./icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

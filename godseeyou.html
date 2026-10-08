@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<!-- Legacy entry kept functional for file:// localStorage compatibility. Core CSS/JS are shared in ./assets. -->
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#fcfcfc">
+    <meta name="description" content="A focused workspace for tasks, habits, objectives, and personal progress.">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Daily Operations Dashboard</title>
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./icons/app-icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="./icons/app-icon.svg">
+    <script src="https://unpkg.com/lucide@1.33.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="./assets/styles.css?v=2">
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1><i data-lucide="zap" class="icon"></i> Workspace Dashboard</h1>
+        <div class="header-actions">
+            <a class="focus-mode-link" href="./today.html">Focus / Today</a>
+            <a class="focus-mode-link" href="./training.html" style="color: #f97316; border: 1px solid rgba(249, 115, 22, 0.3); background: rgba(249, 115, 22, 0.1);"><i data-lucide="dumbbell" class="icon" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>Training</a>
+            <a class="focus-mode-link" href="./study.html" style="color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.1);"><i data-lucide="graduation-cap" class="icon" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>Academy</a>
+            <div class="productivity-streak" title="Consecutive days with all tasks due today and daily habits completed"><i data-lucide="flame" class="icon"></i><span id="productivityStreak">0-Day Streak</span></div>
+            <button class="header-icon-btn" type="button" onclick="openDataManager()" title="Data, backups & archive" aria-label="Open data manager"><i data-lucide="database-backup" class="icon"></i></button>
+            <button type="button" class="secret-trigger" onclick="promptSecretCode()" title="Unlock Area" aria-label="Unlock area"><i data-lucide="lock-keyhole" class="icon"></i></button>
+        </div>
+    </header>
+
+
+    <section class="today-overview" aria-labelledby="todayGreeting">
+        <div class="today-overview-heading">
+            <div><p class="today-eyebrow">Today Overview</p><h2 id="todayGreeting">Hello, Anass ??</h2></div>
+            <span class="today-streak"><i data-lucide="flame" class="icon"></i><span id="todayStreak">0-day streak</span></span>
+        </div>
+        <p class="today-summary" id="todaySummary" aria-live="polite"></p>
+        <div class="today-stats">
+            <div><strong id="todayTaskCount">0</strong><span>tasks today</span></div>
+            <div><strong id="todayOverdueCount">0</strong><span>overdue</span></div>
+            <div><strong id="todayCompletedCount">0</strong><span>completed today</span></div>
+            <div><strong id="todayProgressValue">0%</strong><span>daily progress</span></div>
+        </div>
+        <div class="today-progress" id="todayProgress" role="progressbar" aria-label="Today's task completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="todayProgressFill"></div></div>
+        <p class="today-next"><i data-lucide="clock-3" class="icon"></i><span id="todayNext">No upcoming tasks or events.</span></p>
+    </section>
+
+    <!-- Calendar & Scheduling Section (Calendria) -->
+    <section class="calendar-section" id="calendarSection" aria-labelledby="calendarTitle">
+        <div class="calendar-header-row">
+            <div class="calendar-title-wrap">
+                <h2 class="calendar-title" id="calendarTitle">
+                    <i data-lucide="calendar" class="icon"></i>
+                    <span>Calendar &amp; Schedule</span>
+                </h2>
+                <span class="calendar-hijri-month" id="calendarHijriMonth"></span>
+            </div>
+            <div class="calendar-controls">
+                <button class="cal-nav-btn" id="calPrevMonth" title="Previous" aria-label="Previous">
+                    <i data-lucide="chevron-left" class="icon"></i>
+                </button>
+                <button class="cal-today-btn" id="calTodayBtn">Today</button>
+                <button class="cal-nav-btn" id="calNextMonth" title="Next" aria-label="Next">
+                    <i data-lucide="chevron-right" class="icon"></i>
+                </button>
+                <span class="cal-current-label" id="calMonthYearLabel"></span>
+                <div class="cal-view-group" role="group" aria-label="Calendar view">
+                    <button class="cal-view-btn active" id="calViewMonth" data-view="month">Month</button>
+                    <button class="cal-view-btn" id="calViewWeek" data-view="week">Week</button>
+                </div>
+                <button class="cal-toggle-hijri active" id="calToggleHijri" title="Toggle Hijri (Islamic) dates">
+                    <i data-lucide="moon" class="icon"></i>
+                    <span>Hijri</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="calendar-grid-container" id="calendarGridContainer">
+            <div class="calendar-weekdays" id="calendarWeekdays">
+                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+            </div>
+            <div class="calendar-days-grid" id="calendarDaysGrid"></div>
+        </div>
+
+        <!-- Day Drawer Panel -->
+        <div class="calendar-day-drawer" id="calendarDayDrawer">
+            <div class="drawer-header">
+                <div class="drawer-date-info">
+                    <div class="drawer-gregorian" id="drawerGregorianDate">Select a date</div>
+                    <div class="drawer-hijri" id="drawerHijriDate"></div>
+                </div>
+                <div class="drawer-summary-badges" id="drawerSummaryBadges"></div>
+            </div>
+
+            <div class="drawer-content-grid">
+                <!-- Left: Scheduled Tasks for this day -->
+                <div class="drawer-col">
+                    <h3 class="drawer-col-title">
+                        <i data-lucide="check-square" class="icon"></i>
+                        <span>Scheduled Tasks</span>
+                        <span class="drawer-badge-count" id="drawerTaskCount">0</span>
+                    </h3>
+                    <ul class="drawer-list" id="drawerTaskList"></ul>
+
+                    <!-- Schedule Task for this Day Form -->
+                    <form class="drawer-add-event-form" id="drawerAddTaskForm" onsubmit="event.preventDefault(); addDrawerScheduledTask();">
+                        <input type="text" id="drawerTaskTitle" class="drawer-input" placeholder="Task name (optional ? defaults to type)" maxlength="200" aria-label="Task name (optional)">
+                        <select id="drawerTaskTarget" class="drawer-select" aria-label="Weekly target"><option value="">No weekly target</option></select>
+                        <div class="drawer-form-row">
+                            <select id="drawerTaskCategory" class="drawer-select" aria-label="Task type">
+                                <option value="lang">Languages</option>
+                                <option value="cyber">Cybersecurity</option>
+                                <option value="train">Training</option>
+                                <option value="din">Din</option>
+                                <option value="work">Lkhedma</option>
+                                <option value="proj">My Projects</option>
+                            </select>
+                            <select id="drawerTaskPriority" class="drawer-select" aria-label="Task priority">
+                                <option value="high">High</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                            <button type="button" id="drawerTaskRecurrence" class="recurring-badge" value="once" title="Once; click to change" aria-label="Repeat: Once; click to change" onclick="cycleDrawerTaskRecurrence()">
+                                <i data-lucide="calendar-1" class="icon"></i>
+                            </button>
+                            <button type="submit" class="drawer-add-btn" id="drawerAddTaskBtn">
+                                <i data-lucide="plus" class="icon"></i> Add
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Right: Standalone Events & Milestones -->
+                <div class="drawer-col">
+                    <h3 class="drawer-col-title">
+                        <i data-lucide="flag" class="icon"></i>
+                        <span>Events &amp; Milestones</span>
+                        <span class="drawer-badge-count" id="drawerEventCount">0</span>
+                    </h3>
+                    <ul class="drawer-list" id="drawerEventList"></ul>
+
+                    <!-- Add Event Form -->
+                    <form class="drawer-add-event-form" id="drawerAddEventForm" onsubmit="event.preventDefault(); addCalendarEvent();">
+                        <input type="text" id="drawerEventTitle" class="drawer-input" placeholder="Add event (e.g. CEH lab, leg day, exam)..." required>
+                        <div class="drawer-form-row">
+                            <select id="drawerEventCategory" class="drawer-select" aria-label="Event category">
+                                <option value="lang">Languages</option>
+                                <option value="cyber">Cybersecurity</option>
+                                <option value="train">Training</option>
+                                <option value="din">Din</option>
+                                <option value="work">Lkhedma</option>
+                                <option value="proj">My Projects</option>
+                            </select>
+                            <input type="time" id="drawerEventTime" class="drawer-time" title="Time (optional)" aria-label="Event time">
+                            <button type="submit" class="drawer-add-btn" id="drawerAddBtn">
+                                <i data-lucide="plus" class="icon"></i> Add
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="task-toolbar" role="search">
+        <div class="search-wrap">
+            <i data-lucide="search" class="icon"></i>
+            <input class="task-search" id="taskSearch" type="search" placeholder="Search tasks, objectives & events..." autocomplete="off" aria-label="Search tasks, objectives and events">
+            <button class="clear-search" id="clearSearch" title="Clear search" aria-label="Clear search"><i data-lucide="x" class="icon"></i></button>
+        </div>
+        <div class="filter-group" aria-label="Filter tasks by date or status">
+            <button class="filter-btn active" data-filter="today">Today</button>
+            <button class="filter-btn" data-filter="week">This Week</button>
+            <button class="filter-btn" data-filter="active">Active</button>
+            <button class="filter-btn" data-filter="completed">Completed</button>
+        </div>
+    </div>
+
+    <div class="categories-grid">
+        
+        <!-- Deutsch & French -->
+        <div class="card" data-category="lang">
+            <div class="card-header c-lang"><i data-lucide="languages" class="icon"></i> Languages (Deutsch & French)</div>
+            <ul id="list-lang"></ul>
+        </div>
+
+        <!-- Cybersécurité -->
+        <div class="card" data-category="cyber">
+            <div class="card-header c-cyber"><i data-lucide="shield-check" class="icon"></i> Cybersécurité</div>
+            <ul id="list-cyber"></ul>
+        </div>
+
+        <!-- Training -->
+        <div class="card" data-category="train">
+            <div class="card-header c-train"><i data-lucide="dumbbell" class="icon"></i> Training</div>
+            <ul id="list-train"></ul>
+        </div>
+
+        <!-- Din -->
+        <div class="card" data-category="din">
+            <div class="card-header c-din"><i data-lucide="moon-star" class="icon"></i> Din</div>
+            <ul id="list-din"></ul>
+        </div>
+
+        <!-- Lkhedma -->
+        <div class="card" data-category="work">
+            <div class="card-header c-work"><i data-lucide="briefcase-business" class="icon"></i> Lkhedma</div>
+            <ul id="list-work"></ul>
+        </div>
+
+        <!-- My Projects -->
+        <div class="card" data-category="proj">
+            <div class="card-header c-proj"><i data-lucide="rocket" class="icon"></i> My Projects</div>
+            <ul id="list-proj"></ul>
+        </div>
+
+    </div>
+
+    <section class="objectives-section" aria-labelledby="objectivesTitle">
+        <h2 class="objectives-title" id="objectivesTitle"><i data-lucide="target" class="icon"></i> Objectives &amp; Roadmap</h2>
+        <div class="objectives-grid">
+            <article class="objective-card yearly">
+                <div class="objective-header"><i data-lucide="calendar-range" class="icon"></i><span>Yearly Goals</span><span class="objective-time-badge" id="objective-time-yearly"></span><span class="objective-percent" id="objective-percent-yearly">0%</span></div>
+                <div class="objective-progress" role="progressbar" aria-label="Yearly goals progress" aria-valuemin="0" aria-valuemax="100"><div class="objective-progress-fill" id="objective-progress-yearly"></div></div>
+                <div class="objective-celebration" role="status" aria-live="polite"><i data-lucide="circle-check" class="icon"></i><span>Yearly roadmap complete. Excellent work.</span></div>
+                <ul class="objective-list" id="objective-list-yearly"></ul>
+                <div class="objective-form">
+                    <input class="objective-input" id="objective-input-yearly" type="text" placeholder="Add certification or milestone..." aria-label="Add yearly goal">
+                    <button class="objective-add" data-objective-add="yearly" title="Add yearly goal" aria-label="Add yearly goal"><i data-lucide="plus" class="icon"></i></button>
+                </div>
+            </article>
+            <article class="objective-card monthly">
+                <div class="objective-header"><i data-lucide="calendar-days" class="icon"></i><span>Monthly Objectives</span><span class="objective-time-badge" id="objective-time-monthly"></span><span class="objective-percent" id="objective-percent-monthly">0%</span></div>
+                <div class="objective-progress" role="progressbar" aria-label="Monthly objectives progress" aria-valuemin="0" aria-valuemax="100"><div class="objective-progress-fill" id="objective-progress-monthly"></div></div>
+                <div class="objective-celebration" role="status" aria-live="polite"><i data-lucide="circle-check" class="icon"></i><span>Monthly objectives complete. Well done.</span></div>
+                <ul class="objective-list" id="objective-list-monthly"></ul>
+                <div class="objective-form">
+                    <input class="objective-input" id="objective-input-monthly" type="text" placeholder="Add this month's objective..." aria-label="Add monthly objective">
+                    <button class="objective-add" data-objective-add="monthly" title="Add monthly objective" aria-label="Add monthly objective"><i data-lucide="plus" class="icon"></i></button>
+                </div>
+            </article>
+            <article class="objective-card weekly">
+                <div class="objective-header"><i data-lucide="calendar-check" class="icon"></i><span>Weekly Targets</span><span class="objective-time-badge" id="objective-time-weekly"></span><span class="objective-percent" id="objective-percent-weekly">0%</span></div>
+                <div class="objective-progress" role="progressbar" aria-label="Weekly targets progress" aria-valuemin="0" aria-valuemax="100"><div class="objective-progress-fill" id="objective-progress-weekly"></div></div>
+                <div class="objective-celebration" role="status" aria-live="polite"><i data-lucide="circle-check" class="icon"></i><span>Weekly targets complete. Strong finish.</span></div>
+                <ul class="objective-list" id="objective-list-weekly"></ul>
+                <div class="objective-form">
+                    <input class="objective-input" id="objective-input-weekly" type="text" placeholder="Add this week's target..." aria-label="Add weekly target">
+                    <button class="objective-add" data-objective-add="weekly" title="Add weekly target" aria-label="Add weekly target"><i data-lucide="plus" class="icon"></i></button>
+                </div>
+            </article>
+        </div>
+    </section>
+</div>
+
+<div class="modal rollover-modal" id="monthlyRolloverModal">
+    <div class="modal-content rollover-content" role="dialog" aria-modal="true" aria-labelledby="rolloverTitle">
+        <h2 class="rollover-heading" id="rolloverTitle"><i data-lucide="calendar-sync" class="icon"></i><span id="rolloverHeadingText">Start new month</span></h2>
+        <p class="rollover-period" id="rolloverPeriodText"></p>
+        <div class="rollover-summary">
+            <div class="rollover-stat completed"><i data-lucide="circle-check" class="icon"></i><span><strong id="rolloverCompletedCount">0</strong> completed</span></div>
+            <div class="rollover-stat unfinished"><i data-lucide="circle-dashed" class="icon"></i><span><strong id="rolloverUnfinishedCount">0</strong> unfinished</span></div>
+        </div>
+        <div class="rollover-actions">
+            <button class="rollover-primary" onclick="completeMonthlyRollover('carry')"><i data-lucide="arrow-right" class="icon"></i> Move unfinished forward</button>
+            <button class="rollover-secondary" onclick="completeMonthlyRollover('archive')"><i data-lucide="archive" class="icon"></i> Archive all</button>
+        </div>
+    </div>
+</div>
+
+<!-- Secret NoFap Modal -->
+<div class="modal" id="nofapModal">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="nofapTitle">
+        <h2 id="nofapTitle" style="color: #38bdf8; display: flex; align-items: center; justify-content: center; gap: 8px;"><i data-lucide="flame" class="icon"></i> NoFap Tracker</h2>
+        <div class="days-count" id="daysCount">0</div>
+        <p style="color: #94a3b8;">Streak days</p>
+        <p class="live-time" id="liveTime">00 hours · 00 minutes · 00 seconds</p>
+
+        <div class="streak-summary">
+            <div class="stat-box"><span class="stat-value" id="bestStreak">0</span><span class="stat-label">Personal best</span></div>
+            <div class="stat-box"><span class="stat-value" id="totalCleanDays">0</span><span class="stat-label">Total clean days</span></div>
+            <div class="stat-box"><span class="stat-value" id="resetCount">0</span><span class="stat-label">Previous resets</span></div>
+        </div>
+
+        <section class="milestone-card" aria-label="Milestone progress">
+            <div class="milestone-row"><strong id="milestoneName">7-day milestone</strong><span id="milestonePercent">0%</span></div>
+            <div class="progress-track"><div class="progress-fill" id="milestoneProgress"></div></div>
+            <p class="milestone-note" id="milestoneNote"></p>
+            <p class="milestone-message" id="milestoneMessage"><i data-lucide="badge-check" class="icon"></i><span id="milestoneMessageText"></span></p>
+        </section>
+
+        <section class="activity-section">
+            <p class="section-label">Last seven days</p>
+            <div class="activity-row" id="activityRow"></div>
+        </section>
+
+        <p class="date-details"><span id="startDateLabel"></span><br><span id="nextMilestoneDate"></span></p>
+
+        <section class="history-panel">
+            <p class="section-label">Streak history</p>
+            <div class="history-list" id="streakHistory"></div>
+        </section>
+
+        <section class="quote-card" aria-live="polite">
+            <div class="quote-topline">
+                <span class="quote-type" id="quoteType">Daily reminder</span>
+                <button class="next-quote-btn" onclick="showNextQuote()"><i data-lucide="refresh-cw" class="icon"></i> Next quote</button>
+            </div>
+            <p class="quote-arabic" id="quoteArabic" lang="ar"></p>
+            <p class="quote-text" id="quoteText"></p>
+            <p class="quote-source" id="quoteSource"></p>
+        </section>
+
+        <button class="sos-btn" type="button" onclick="openEmergency()"><i data-lucide="siren" class="icon"></i> I feel a weak moment / Urge</button>
+        <div class="streak-reset-alert" id="streakResetAlert" role="status" aria-live="polite"></div>
+        <div class="modal-actions">
+            <button class="reset-btn" id="resetStreakBtn" type="button" onclick="resetCounter()"><i data-lucide="rotate-ccw" class="icon"></i> Reset streak</button>
+            <button class="close-btn" type="button" onclick="changeSecretPin()"><i data-lucide="key-round" class="icon"></i> Change PIN</button>
+            <button class="close-btn" type="button" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal" id="taskEditModal">
+  <div class="modal-content utility-modal" role="dialog" aria-modal="true" aria-labelledby="taskEditTitle">
+    <h2 id="taskEditTitle" class="utility-title"><i data-lucide="pencil" class="icon"></i> Edit task</h2>
+    <div class="utility-form">
+      <label>Title<input id="editTaskText" type="text" maxlength="200"></label>
+      <div class="utility-grid">
+        <label>Category<select id="editTaskCategory"><option value="lang">Languages</option><option value="cyber">Cybersecurity</option><option value="train">Training</option><option value="din">Din</option><option value="work">Lkhedma</option><option value="proj">My Projects</option></select></label>
+        <label>Priority<select id="editTaskPriority"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
+        <label>Recurrence<select id="editTaskRecurrence"><option value="once">Once</option><option value="habit">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
+        <label>Due date<input id="editTaskDueDate" type="date"></label>
+      </div>
+      <label>Weekly target<select id="editTaskTarget"><option value="">No weekly target</option></select></label>
+      <label class="utility-check"><input id="editTaskCompleted" type="checkbox"> Completed</label>
+    </div>
+    <div class="utility-actions"><button class="rollover-primary" onclick="saveTaskEdit()">Save changes</button><button class="rollover-secondary" onclick="closeTaskEditor()">Cancel</button></div>
+  </div>
+</div>
+
+<div class="modal" id="dataManagerModal">
+  <div class="modal-content utility-modal wide" role="dialog" aria-modal="true" aria-labelledby="dataManagerTitle">
+    <h2 id="dataManagerTitle" class="utility-title"><i data-lucide="database-backup" class="icon"></i> Data & backups</h2>
+    <p class="utility-note">Your data stays in this browser. Export a backup regularly so a browser reset or device change does not erase your workspace.</p>
+    <div class="utility-actions left"><button class="rollover-primary" onclick="exportDashboardBackup()"><i data-lucide="download" class="icon"></i> Export backup</button><label class="rollover-secondary file-label"><i data-lucide="upload" class="icon"></i> Import backup<input id="backupFileInput" type="file" accept="application/json,.json" onchange="importDashboardBackup(event)"></label><button class="rollover-secondary" onclick="renderArchiveViewer()"><i data-lucide="archive" class="icon"></i> Refresh archive</button></div>
+    <div id="archiveViewer" class="archive-viewer"></div>
+    <div class="utility-actions"><button class="close-btn" onclick="closeDataManager()">Close</button></div>
+  </div>
+</div>
+
+<div class="modal emergency-overlay" id="emergencyModal">
+    <div class="modal-content emergency-content" role="alertdialog" aria-modal="true" aria-labelledby="emergencyTitle">
+        <i data-lucide="shield-alert" class="emergency-icon"></i>
+        <h2 class="emergency-title" id="emergencyTitle">This moment will pass</h2>
+        <p class="emergency-reminder">Nod twaḍḍa w ṣalli 2 rakʿat. Leave the room, put the phone away, and breathe slowly.</p>
+        <p class="emergency-reminder">L-mutaʿa kat-dum minutes; l-ḥasra kat-dum days. Choose the person you want to become.</p>
+        <p class="emergency-ayah" lang="ar">وَأَمَّا مَنْ خَافَ مَقَامَ رَبِّهِۦ وَنَهَى ٱلنَّفْسَ عَنِ ٱلْهَوَىٰ ۝ فَإِنَّ ٱلْجَنَّةَ هِىَ ٱلْمَأْوَىٰ</p>
+        <p class="emergency-source">Surat An-Nazi'at — 79:40–41</p>
+        <button class="close-btn" onclick="closeEmergency()"><i data-lucide="check" class="icon"></i> I choose self-control</button>
+    </div>
+</div>
+
+<script src="./assets/task-schedule.js?v=2"></script>
+<script src="./assets/app.js?v=3"></script>
+<script src="./assets/habits.js?v=2"></script>
+</body>
+</html>

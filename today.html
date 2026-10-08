@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="description" content="A distraction-free Today mode to focus on your essential tasks.">
+    <title>Today · Focus Mode</title>
+    <link rel="icon" href="./icons/app-icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@1.33.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="./assets/today.css?v=2">
+</head>
+<body>
+    <div class="focus-background-glow" aria-hidden="true"></div>
+
+    <main class="focus-container">
+        <!-- Top Navigation -->
+        <nav class="focus-nav" aria-label="Main Navigation">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <a href="./index.html" class="nav-back-link" title="Return to full dashboard" id="backToDashboard">
+                    <i data-lucide="arrow-left" class="nav-icon"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="./training.html" class="nav-back-link" title="Go to Training Hub" id="navToTraining" style="color: var(--accent-power, #f97316);">
+                    <i data-lucide="dumbbell" class="nav-icon"></i>
+                    <span>Training</span>
+                </a>
+                <a href="./study.html" class="nav-back-link" title="Go to Academy Hub" id="navToAcademy" style="color: #06b6d4;">
+                    <i data-lucide="graduation-cap" class="nav-icon"></i>
+                    <span>Academy</span>
+                </a>
+            </div>
+            <div class="nav-center-badge">
+                <span class="pulse-indicator"></span>
+                <span>FOCUS MODE</span>
+            </div>
+            <div class="nav-actions">
+                <button type="button" class="nav-icon-btn" id="timerToggleBtn" title="Toggle Focus Timer" aria-label="Toggle Focus Timer">
+                    <i data-lucide="timer" class="nav-icon"></i>
+                </button>
+                <button type="button" class="nav-icon-btn" id="themeToggleBtn" title="Toggle Dark/Light Mode" aria-label="Toggle Dark/Light Mode">
+                    <i data-lucide="sun" class="nav-icon theme-icon-sun"></i>
+                    <i data-lucide="moon" class="nav-icon theme-icon-moon"></i>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Collapsible Focus / Pomodoro Timer -->
+        <section class="focus-timer-card" id="focusTimerCard" aria-label="Pomodoro Focus Timer" hidden>
+            <div class="timer-header">
+                <span class="timer-label"><i data-lucide="flame" class="timer-icon"></i> Deep Work Interval</span>
+                <div class="timer-presets">
+                    <button type="button" class="timer-preset-btn active" data-minutes="25">25m</button>
+                    <button type="button" class="timer-preset-btn" data-minutes="50">50m</button>
+                    <button type="button" class="timer-preset-btn" data-minutes="15">15m</button>
+                </div>
+            </div>
+            <div class="timer-display" id="timerDisplay">25:00</div>
+            <div class="timer-controls">
+                <button type="button" class="timer-btn primary" id="timerStartBtn">
+                    <i data-lucide="play" class="timer-btn-icon" id="timerPlayIcon"></i>
+                    <span id="timerStartText">Start Focus</span>
+                </button>
+                <button type="button" class="timer-btn secondary" id="timerResetBtn" title="Reset Timer">
+                    <i data-lucide="rotate-ccw" class="timer-btn-icon"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- Header -->
+        <header class="focus-header">
+            <div class="header-title-row">
+                <h1>Today</h1>
+                <span class="header-date" id="todayDate"></span>
+            </div>
+            <p class="focus-tagline">Cut through the noise. Focus on what matters today.</p>
+            <p id="focusError" class="focus-alert-error" role="alert" hidden></p>
+        </header>
+
+        <!-- Must Do Section -->
+        <section class="priority-group group-must" aria-labelledby="mustTitle">
+            <div class="group-header">
+                <h2 id="mustTitle">
+                    <span class="priority-dot dot-high"></span>
+                    <span class="priority-name">Must Do</span>
+                    <span class="priority-badge">Non-negotiable</span>
+                </h2>
+                <button type="button" class="quick-add-trigger" data-priority="high" aria-label="Add task to Must Do">
+                    <i data-lucide="plus" class="btn-icon"></i> Add task
+                </button>
+            </div>
+            <div class="quick-add-form" id="addForm-high" hidden>
+                <input type="text" class="quick-add-input" placeholder="What must get done today? (Press Enter)" aria-label="New Must Do task title">
+                <div class="quick-add-buttons">
+                    <button type="button" class="btn-submit-task">Add</button>
+                    <button type="button" class="btn-cancel-task">Cancel</button>
+                </div>
+            </div>
+            <ul id="focus-high" class="task-list"></ul>
+        </section>
+
+        <!-- Should Do Section -->
+        <section class="priority-group group-should" aria-labelledby="shouldTitle">
+            <div class="group-header">
+                <h2 id="shouldTitle">
+                    <span class="priority-dot dot-medium"></span>
+                    <span class="priority-name">Should Do</span>
+                    <span class="priority-badge">Important</span>
+                </h2>
+                <button type="button" class="quick-add-trigger" data-priority="medium" aria-label="Add task to Should Do">
+                    <i data-lucide="plus" class="btn-icon"></i> Add task
+                </button>
+            </div>
+            <div class="quick-add-form" id="addForm-medium" hidden>
+                <input type="text" class="quick-add-input" placeholder="What should you complete today? (Press Enter)" aria-label="New Should Do task title">
+                <div class="quick-add-buttons">
+                    <button type="button" class="btn-submit-task">Add</button>
+                    <button type="button" class="btn-cancel-task">Cancel</button>
+                </div>
+            </div>
+            <ul id="focus-medium" class="task-list"></ul>
+        </section>
+
+        <!-- Optional Section -->
+        <section class="priority-group group-optional" aria-labelledby="optionalTitle">
+            <div class="group-header">
+                <h2 id="optionalTitle">
+                    <span class="priority-dot dot-low"></span>
+                    <span class="priority-name">Optional</span>
+                    <span class="priority-badge">Bonus</span>
+                </h2>
+                <button type="button" class="quick-add-trigger" data-priority="low" aria-label="Add task to Optional">
+                    <i data-lucide="plus" class="btn-icon"></i> Add task
+                </button>
+            </div>
+            <div class="quick-add-form" id="addForm-low" hidden>
+                <input type="text" class="quick-add-input" placeholder="What would be nice if time allows? (Press Enter)" aria-label="New Optional task title">
+                <div class="quick-add-buttons">
+                    <button type="button" class="btn-submit-task">Add</button>
+                    <button type="button" class="btn-cancel-task">Cancel</button>
+                </div>
+            </div>
+            <ul id="focus-low" class="task-list"></ul>
+        </section>
+
+        <!-- Progress Footer -->
+        <footer class="focus-footer" aria-label="Daily Progress">
+            <div class="progress-stats-row">
+                <div class="count-wrapper">
+                    <span class="count-prefix"><i data-lucide="check-circle-2" class="status-icon"></i> Progress:</span>
+                    <strong id="focusCount" class="focus-count" role="status" aria-live="polite">2 / 4 completed</strong>
+                </div>
+                <span id="focusPercentBadge" class="percent-badge">50%</span>
+            </div>
+
+            <div id="focusProgress" class="progress-track" role="progressbar" aria-label="Today's task progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+                <div id="focusFill" class="progress-fill" style="width: 50%;"></div>
+            </div>
+
+            <p id="focusMessage" class="focus-message">Only today's scheduled tasks and daily habits appear here.</p>
+        </footer>
+    </main>
+
+    <!-- Confetti canvas for completion celebration -->
+    <canvas id="celebrationCanvas" class="celebration-canvas" aria-hidden="true"></canvas>
+
+    <script src="./assets/task-schedule.js?v=2"></script>
+    <script src="./assets/today.js?v=2"></script>
+</body>
+</html>

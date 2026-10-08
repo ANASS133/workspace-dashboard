@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0e17">
+    <meta name="description" content="Academy & Roadmaps Hub — Interactive Curricula for Cybersecurity, French, and German.">
+    <title>Academy &amp; Roadmaps Hub</title>
+    <link rel="icon" href="./icons/app-icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@1.33.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="./assets/study.css?v=2">
+</head>
+<body>
+
+    <main class="academy-wrapper">
+        <!-- Top Navigation Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <a href="./index.html" class="nav-link-btn" title="Return to Dashboard">
+                    <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="./today.html" class="nav-link-btn" title="Focus / Today">
+                    <i data-lucide="zap" style="width: 14px; height: 14px;"></i>
+                    <span>Focus</span>
+                </a>
+                <a href="./training.html" class="nav-link-btn" title="Calisthenics Coach" style="color: #f97316;">
+                    <i data-lucide="dumbbell" style="width: 14px; height: 14px;"></i>
+                    <span>Training</span>
+                </a>
+                <span class="academy-badge">
+                    <i data-lucide="graduation-cap" style="width: 14px; height: 14px;"></i>
+                    <span>Academy</span>
+                </span>
+            </div>
+            <div class="header-right">
+                <button type="button" class="icon-btn" title="Reset Current Track Progress" onclick="window.academyResetTrackProgress()" aria-label="Reset Progress">
+                    <i data-lucide="rotate-ccw" style="width: 15px; height: 15px;"></i>
+                </button>
+                <button type="button" class="icon-btn" id="themeToggleBtn" title="Toggle Theme" aria-label="Toggle Theme">
+                    <i data-lucide="sun" class="theme-sun" style="width: 15px; height: 15px;"></i>
+                    <i data-lucide="moon" class="theme-moon" style="width: 15px; height: 15px;"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Track Selector Navigation -->
+        <nav class="track-selector-nav" aria-label="Curriculum Tracks">
+            <button type="button" class="track-tab-btn active" data-track="cyber">
+                <span class="track-tab-icon">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <path d="m9 12 2 2 4-4"/>
+                    </svg>
+                </span>
+                <span>Cyber &amp; Systèmes</span>
+            </button>
+            <button type="button" class="track-tab-btn" data-track="french">
+                <span class="track-tab-icon">
+                    <svg width="20" height="20" viewBox="0 0 32 32" style="border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.35); flex-shrink: 0;">
+                        <clipPath id="tabFrRound"><circle cx="16" cy="16" r="16"/></clipPath>
+                        <g clip-path="url(#tabFrRound)">
+                            <rect x="0" y="0" width="10.67" height="32" fill="#0055A4"/>
+                            <rect x="10.67" y="0" width="10.67" height="32" fill="#FFFFFF"/>
+                            <rect x="21.33" y="0" width="10.67" height="32" fill="#EF4135"/>
+                        </g>
+                    </svg>
+                </span>
+                <span>Français (A2–C1)</span>
+            </button>
+            <button type="button" class="track-tab-btn" data-track="german">
+                <span class="track-tab-icon">
+                    <svg width="20" height="20" viewBox="0 0 32 32" style="border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.35); flex-shrink: 0;">
+                        <clipPath id="tabDeRound"><circle cx="16" cy="16" r="16"/></clipPath>
+                        <g clip-path="url(#tabDeRound)">
+                            <rect x="0" y="0" width="32" height="10.67" fill="#111111"/>
+                            <rect x="0" y="10.67" width="32" height="10.67" fill="#DD0000"/>
+                            <rect x="0" y="21.33" width="32" height="10.67" fill="#FFCE00"/>
+                        </g>
+                    </svg>
+                </span>
+                <span>Deutsch (B1–C1)</span>
+            </button>
+        </nav>
+
+        <!-- Track Hero & Overall Progress -->
+        <section id="trackHeroContainer" aria-label="Track Progress Overview">
+            <!-- Rendered dynamically via study.js -->
+        </section>
+
+        <!-- Next Up Daily Recommendation -->
+        <section id="nextUpContainer" aria-label="Daily Recommended Objective">
+            <!-- Rendered dynamically via study.js -->
+        </section>
+
+        <!-- Level Pills Horizontal Filter -->
+        <div class="level-pills-bar" id="levelPillsContainer" role="group" aria-label="Filter by Level">
+            <!-- Rendered dynamically via study.js -->
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="toolbar-row">
+            <div class="search-box-wrap">
+                <i data-lucide="search" class="search-icon-svg" style="width: 16px; height: 16px;"></i>
+                <input type="text" id="curriculumSearchInput" class="search-input" placeholder="Search topics, verbs, commands, rules..." autocomplete="off">
+            </div>
+
+            <div class="filter-group" role="group" aria-label="Filter status">
+                <button type="button" class="filter-btn active" data-filter="all">All</button>
+                <button type="button" class="filter-btn" data-filter="remaining">To Do</button>
+                <button type="button" class="filter-btn" data-filter="completed">Done</button>
+            </div>
+
+            <div class="filter-group">
+                <button type="button" class="toolbar-action-btn" onclick="window.academyToggleAllModules(true)" title="Expand all modules">
+                    <i data-lucide="chevrons-down-up" style="width: 13px; height: 13px; vertical-align: middle; margin-right: 3px;"></i> Expand
+                </button>
+                <button type="button" class="toolbar-action-btn" onclick="window.academyToggleAllModules(false)" title="Collapse all modules">
+                    <i data-lucide="chevrons-up-down" style="width: 13px; height: 13px; vertical-align: middle; margin-right: 3px;"></i> Collapse
+                </button>
+            </div>
+        </div>
+
+        <!-- Modules & Accordion Container -->
+        <section class="modules-container" id="modulesContainer" aria-label="Curriculum Modules">
+            <!-- Rendered dynamically via study.js -->
+        </section>
+    </main>
+
+    <!-- Notes Modal / Drawer -->
+    <div class="modal-overlay" id="notesModalOverlay" role="dialog" aria-modal="true" aria-labelledby="notesModalTitle">
+        <div class="notes-modal-content">
+            <div class="notes-modal-header">
+                <h3 class="notes-modal-title" id="notesModalTitle">
+                    <i data-lucide="book-marked" style="width: 18px; height: 18px; color: var(--accent);"></i>
+                    <span>Study Notes &amp; Scratchpad</span>
+                </h3>
+                <button type="button" class="icon-btn" onclick="window.academyCloseNotes()" aria-label="Close notes modal">
+                    <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                </button>
+            </div>
+            <div class="notes-topic-name" id="notesTopicName">Topic title</div>
+            <textarea id="notesTextarea" class="notes-textarea" placeholder="Write personal study notes, key rules, cheatsheet commands, or memory tips for this topic..."></textarea>
+            <div class="notes-modal-footer">
+                <button type="button" class="btn-secondary" onclick="window.academyCloseNotes()">Cancel</button>
+                <button type="button" class="btn-primary" onclick="window.academySaveNotes()">Save Notes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Toast Container -->
+    <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+    <!-- Scripts -->
+    <script src="./assets/curriculum-data.js?v=1"></script>
+    <script src="./assets/study.js?v=3"></script>
+</body>
+</html>

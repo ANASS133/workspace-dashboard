@@ -1,0 +1,17 @@
+# IDE and tool metadata
+.qodo/
+.vscode/
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Windows shortcuts and OS artifacts
+*.lnk
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Temporary scratch files (optional, keeping scripts if needed)
+scratch/__pycache__/
