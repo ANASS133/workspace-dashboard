@@ -766,6 +766,7 @@
         if (sourceCat === targetCat && sourceIndex < insertionIndex) insertionIndex--;
         insertionIndex = Math.max(0, Math.min(insertionIndex, todos[targetCat].length));
         todos[targetCat].splice(insertionIndex, 0, moved);
+        moved.updatedAt = Date.now();
         saveAndRender();
     }
 
@@ -1205,6 +1206,7 @@
         const [task] = todos[cat].splice(index, 1);
         const current = sequence.indexOf(task.priority);
         task.priority = sequence[(current + 1) % sequence.length];
+        task.updatedAt = Date.now();
         const insertionIndex = todos[cat].findIndex(item => priorityRank[item.priority] > priorityRank[task.priority]);
         if (insertionIndex === -1) todos[cat].push(task);
         else todos[cat].splice(insertionIndex, 0, task);
@@ -1217,6 +1219,7 @@
         task.recurrence = recurrenceOptions[(current + 1) % recurrenceOptions.length].value;
         task.scheduleStart = task.dueDate;
         task.completedDates = [];
+        task.updatedAt = Date.now();
         saveAndRender();
     }
 
@@ -1224,6 +1227,7 @@
         const text = rawText.trim();
         if (!text) return;
         todos[cat][index].subtasks.push({ id: createLocalId(), text, completed: false });
+        todos[cat][index].updatedAt = Date.now();
         expandedTaskIds.add(todos[cat][index].id);
         saveAndRender();
     }
@@ -1331,14 +1335,20 @@
     function readObjectives() {
         try {
             const stored = JSON.parse(localStorage.getItem('dashboard_objectives'));
+            let deleted = {};
+            try { deleted = JSON.parse(localStorage.getItem('dashboard_deleted_objectives') || '{}'); } catch (_) {}
             const normalized = {};
             objectivePeriods.forEach(period => {
                 normalized[period] = Array.isArray(stored?.[period])
-                    ? stored[period].filter(item => item && typeof item.text === 'string').map(item => ({
+                    ? stored[period].filter(item => item && typeof item.text === 'string' && !deleted[item.id]).map(item => ({
                         id: typeof item.id === 'string' && item.id ? item.id : createLocalId(),
                         text: cleanText(item.text, 240),
                         completed: Boolean(item.completed),
-                        parentId: typeof item.parentId === 'string' ? item.parentId : ''
+                        parentId: typeof item.parentId === 'string' ? item.parentId : '',
+                        // Keep the record clock used by the shared Supabase
+                        // reconciler; previously Desktop erased it on every
+                        // load and could overwrite a newer mobile goal.
+                        updatedAt: Number(item.updatedAt || 0)
                     }))
                     : [];
             });
@@ -2098,7 +2108,12 @@
 
     function deleteObjective(period, index) {
         if (!objectives[period]?.[index]) return;
-        unlinkObjective(objectives[period][index].id);
+        const objective = objectives[period][index];
+        let tombstones = {};
+        try { tombstones = JSON.parse(localStorage.getItem('dashboard_deleted_objectives') || '{}'); } catch (_) {}
+        tombstones[objective.id] = Date.now();
+        localStorage.setItem('dashboard_deleted_objectives', JSON.stringify(tombstones));
+        unlinkObjective(objective.id);
         objectives[period].splice(index, 1);
         saveObjectives();
     }
@@ -2649,7 +2664,7 @@
 
     const BACKUP_KEYS = [
         'dashboard_habits',
-        'dashboard_todos','dashboard_calendar_events','dashboard_calendar_view','dashboard_calendar_show_hijri',
+        'dashboard_todos','dashboard_deleted_tasks','dashboard_deleted_objectives','dashboard_calendar_events','dashboard_calendar_view','dashboard_calendar_show_hijri',
         'dashboard_objectives','dashboard_objectives_archive','dashboard_objectives_active_month','dashboard_objectives_active_week',
         'productivity_completion_dates','dashboard_last_recurrence_check','nofap_start_date','nofap_streak_history',
         'dashboard_secret_pin_hash','dashboard_schema_version',
@@ -2903,8 +2918,10 @@
 
     installSearchAndFilters();
     window.addEventListener('storage', event => {
-        if (event.key !== 'dashboard_todos' && event.key !== 'productivity_completion_dates' && event.key !== null) return;
+        if (event.key !== 'dashboard_todos' && event.key !== 'productivity_completion_dates' &&
+            event.key !== 'dashboard_objectives' && event.key !== 'dashboard_deleted_objectives' && event.key !== null) return;
         todos = readTodos();
+        objectives = readObjectives();
         categories.forEach(cat => { if (!Array.isArray(todos[cat])) todos[cat] = []; });
         productivityDates = readProductivityDates();
         resetRecurringTasksIfNeeded();
@@ -2915,6 +2932,7 @@
 
     window.addEventListener('workspace-synced', () => {
         todos = readTodos();
+        objectives = readObjectives();
         categories.forEach(cat => { if (!Array.isArray(todos[cat])) todos[cat] = []; });
         productivityDates = readProductivityDates();
         resetRecurringTasksIfNeeded();

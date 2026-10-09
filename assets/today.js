@@ -288,6 +288,14 @@ function completeFocusTask(entry, date, completed) {
         }
         localStorage.setItem('productivity_completion_dates', JSON.stringify([...dates].sort()));
 
+        // Today is a separate UI, but not a separate task store.  Explicitly
+        // enqueue both values so a completion made here is visible to mobile
+        // immediately (the storage hook is deliberately not relied on here).
+        if (window.WorkspaceSync && typeof window.WorkspaceSync.schedulePush === 'function') {
+            window.WorkspaceSync.schedulePush('dashboard_todos', JSON.stringify(tasks));
+            window.WorkspaceSync.schedulePush('productivity_completion_dates', localStorage.getItem('productivity_completion_dates'));
+        }
+
         renderFocus();
     } catch {
         renderFocus();
@@ -368,7 +376,15 @@ function addFocusTask(priority, text) {
             updatedAt: Date.now()
         };
 
-        tasks[category].unshift(newTask);
+        // Match the desktop dashboard's category ordering: priority first,
+        // then newest within the priority.  This keeps focus-created tasks in
+        // the same order on both clients after a cloud refresh.
+        const priorityRank = { high: 0, medium: 1, low: 2 };
+        const insertionIndex = tasks[category].findIndex(task =>
+            priorityRank[task.priority] > priorityRank[priority]
+        );
+        if (insertionIndex === -1) tasks[category].push(newTask);
+        else tasks[category].splice(insertionIndex, 0, newTask);
 
         // Clear any deletion tombstone for this task ID or text
         try {

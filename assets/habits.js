@@ -2,12 +2,39 @@
     const storageKey = 'dashboard_habits';
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    let habits = [];
+    function cleanText(value, max = 300) {
+        return typeof value === 'string' ? value.trim().slice(0, max) : '';
+    }
 
-    try {
-        const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        if (Array.isArray(saved)) habits = saved;
-    } catch {}
+    function loadFromStorage() {
+        try {
+            const raw = localStorage.getItem(storageKey);
+            if (raw) {
+                const saved = JSON.parse(raw);
+                if (Array.isArray(saved)) {
+                    let tombstones = new Set();
+                    try {
+                        const delRaw = localStorage.getItem('dashboard_deleted_habits');
+                        if (delRaw) {
+                            const delObj = JSON.parse(delRaw);
+                            if (Array.isArray(delObj)) {
+                                delObj.forEach(id => tombstones.add(String(id)));
+                            } else if (typeof delObj === 'object' && delObj !== null) {
+                                Object.keys(delObj).forEach(id => tombstones.add(String(id)));
+                            }
+                        }
+                    } catch (_) {}
+
+                    habits = saved.filter(h => h && h.id && !tombstones.has(String(h.id)));
+                    return true;
+                }
+            }
+        } catch (_) {}
+        habits = [];
+        return false;
+    }
+
+    loadFromStorage();
 
     const section = document.createElement('section');
     section.className = 'habits-section';
@@ -60,7 +87,14 @@
         return count;
     }
 
-    function persist() {
+    function persist(modifiedHabit) {
+        const now = Date.now();
+        if (modifiedHabit) {
+            modifiedHabit.updatedAt = now;
+        }
+        habits.forEach(h => {
+            if (!h.updatedAt) h.updatedAt = now;
+        });
         localStorage.setItem(storageKey, JSON.stringify(habits));
         render();
     }
@@ -234,8 +268,9 @@
             if (!items.length) return;
             const group = document.createElement('optgroup');
             group.label = period === 'yearly' ? 'Yearly Goals' : period === 'monthly' ? 'Monthly Objectives' : 'Weekly Targets';
+            const canShowArchived = (typeof showArchivedGoals !== 'undefined' && showArchivedGoals);
             items.forEach(goal => {
-                if (showArchivedGoals || !goal.archived) {
+                if (canShowArchived || !goal.archived) {
                     group.appendChild(new Option(`${goal.text}${goal.archived ? ' (archived)' : ''}`, `${period}:${goal.id}`));
                 }
             });
@@ -276,6 +311,7 @@
             const unitVal = selectedKind === 'quantity' ? document.getElementById('habitModalUnit').value.trim() : '';
             const objVal = document.getElementById('habitModalObjective').value;
 
+            let targetHabit = habit;
             if (isEditing && habit) {
                 habit.name = name;
                 habit.kind = selectedKind;
@@ -283,8 +319,9 @@
                 habit.unit = unitVal;
                 habit.days = selectedDays;
                 habit.objective = objVal;
+                habit.updatedAt = Date.now();
             } else {
-                habits.push({
+                targetHabit = {
                     id: (typeof createLocalId === 'function') ? createLocalId() : crypto.randomUUID(),
                     name,
                     days: selectedDays,
@@ -294,11 +331,28 @@
                     objective: objVal,
                     archived: false,
                     start: (typeof localDateKey === 'function') ? localDateKey() : new Date().toISOString().slice(0, 10),
-                    history: {}
-                });
+                    history: {},
+                    updatedAt: Date.now()
+                };
+                habits.push(targetHabit);
             }
 
-            persist();
+            // Remove from tombstones if created/re-added
+            try {
+                const hid = targetHabit?.id;
+                if (hid) {
+                    const raw = localStorage.getItem('dashboard_deleted_habits');
+                    if (raw) {
+                        const tombstones = JSON.parse(raw);
+                        if (tombstones && tombstones[hid]) {
+                            delete tombstones[hid];
+                            localStorage.setItem('dashboard_deleted_habits', JSON.stringify(tombstones));
+                        }
+                    }
+                }
+            } catch (_) {}
+
+            persist(targetHabit);
             close();
             showHabitToast(isEditing ? `Updated "${name}"` : `Added habit "${name}"`);
         });
@@ -396,7 +450,8 @@
                     habit.history[today] = habit.target || 1;
                     showHabitToast(`Great job! Completed "${habit.name}"`);
                 }
-                persist();
+                habit.updatedAt = Date.now();
+                persist(habit);
             });
 
             // Details Container
@@ -467,7 +522,8 @@
                 minusBtn.addEventListener('click', e => {
                     e.stopPropagation();
                     habit.history[today] = Math.max(0, currentVal - 1);
-                    persist();
+                    habit.updatedAt = Date.now();
+                    persist(habit);
                 });
 
                 const qtyDisplay = document.createElement('span');
@@ -482,7 +538,8 @@
                 plusBtn.addEventListener('click', e => {
                     e.stopPropagation();
                     habit.history[today] = currentVal + 1;
-                    persist();
+                    habit.updatedAt = Date.now();
+                    persist(habit);
                 });
 
                 qtyWrap.append(minusBtn, qtyDisplay, plusBtn);
@@ -530,7 +587,8 @@
                             habit.history[date] = habit.target || 1;
                             showHabitToast(`Marked ${dayNameFull} as completed`);
                         }
-                        persist();
+                        habit.updatedAt = Date.now();
+                        persist(habit);
                     });
                 } else {
                     dayBubble.disabled = true;
@@ -569,7 +627,8 @@
             archiveBtn.innerHTML = `<i data-lucide="${habit.archived ? 'rotate-ccw' : 'archive'}" class="icon"></i>`;
             archiveBtn.addEventListener('click', () => {
                 habit.archived = !habit.archived;
-                persist();
+                habit.updatedAt = Date.now();
+                persist(habit);
                 showHabitToast(habit.archived ? 'Habit archived' : 'Habit restored');
             });
 
@@ -580,6 +639,13 @@
             deleteBtn.innerHTML = '<i data-lucide="trash-2" class="icon"></i>';
             deleteBtn.addEventListener('click', () => {
                 if (confirm(`Delete habit "${habit.name}"?`)) {
+                    try {
+                        const raw = localStorage.getItem('dashboard_deleted_habits');
+                        const tombstones = raw ? JSON.parse(raw) : {};
+                        tombstones[habit.id] = Date.now();
+                        localStorage.setItem('dashboard_deleted_habits', JSON.stringify(tombstones));
+                    } catch (_) {}
+
                     habits = habits.filter(h => h.id !== habit.id);
                     persist();
                     showHabitToast('Habit deleted');
@@ -619,15 +685,22 @@
         }
     }, 30000);
 
+    function handleStorageOrSync() {
+        loadFromStorage();
+        render();
+    }
+
     window.addEventListener('storage', event => {
-        if (event.key === storageKey) {
-            try {
-                const saved = JSON.parse(event.newValue || '[]');
-                if (Array.isArray(saved)) {
-                    habits = saved;
-                    render();
-                }
-            } catch {}
+        if (!event || event.key === storageKey || event.key === 'dashboard_deleted_habits' || event.key === null) {
+            handleStorageOrSync();
         }
+    });
+
+    window.addEventListener('workspace-synced', () => {
+        handleStorageOrSync();
+    });
+
+    window.addEventListener('supabase-sync-status', () => {
+        handleStorageOrSync();
     });
 })();

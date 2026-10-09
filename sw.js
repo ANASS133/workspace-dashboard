@@ -1,7 +1,7 @@
-const CACHE_NAME = 'workspace-dashboard-v22';
+const CACHE_NAME = 'workspace-dashboard-v23';
 const LUCIDE_URL = 'https://unpkg.com/lucide@1.33.0/dist/umd/lucide.min.js';
 const APP_SHELL = [
-  './assets/habits.js?v=2',
+  './assets/habits.js?v=4',
   './',
   './index.html',
   './godseeyou.html',

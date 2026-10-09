@@ -38,6 +38,8 @@
 
     const TRACKED_KEYS = [
         'dashboard_deleted_tasks',
+        'dashboard_deleted_objectives',
+        'dashboard_deleted_habits',
         'dashboard_todos',
         'dashboard_habits',
         'dashboard_calendar_events',
@@ -334,9 +336,11 @@ SELECT count(*) AS total_keys FROM public.workspace_state;`;
                 localList.forEach(item => {
                     if (!item) return;
                     const normId = String(item.id || '').trim().toLowerCase();
-                    // If local item is active, it is NOT deleted; remove from tombstones if present
+                    // A local copy can be stale while another client has
+                    // deleted it. Tombstones must win or an old mobile/web
+                    // cache will put the task back into Supabase.
                     if (normId && tombstones.has(normId)) {
-                        tombstones.delete(normId);
+                        return;
                     }
 
                     const normText = (item.text || '').trim().toLowerCase();
@@ -397,32 +401,65 @@ SELECT count(*) AS total_keys FROM public.workspace_state;`;
         }
     }
 
+    function getDeletedHabitTombstones() {
+        try {
+            const raw = localStorage.getItem('dashboard_deleted_habits');
+            if (!raw) return new Set();
+            const obj = JSON.parse(raw);
+            const set = new Set();
+            if (Array.isArray(obj)) {
+                obj.forEach(x => { const s = String(x || '').trim(); if (s) set.add(s); });
+            } else if (typeof obj === 'object' && obj !== null) {
+                Object.keys(obj).forEach(x => { const s = String(x || '').trim(); if (s) set.add(s); });
+            }
+            return set;
+        } catch {
+            return new Set();
+        }
+    }
+
     function mergeHabits(localRaw, remoteRaw) {
         try {
             const localList = Array.isArray(localRaw) ? localRaw : JSON.parse(localRaw || '[]');
             const remoteList = typeof remoteRaw === 'object' && Array.isArray(remoteRaw) ? remoteRaw : JSON.parse(remoteRaw || '[]');
             const habitMap = new Map();
+            const tombstones = getDeletedHabitTombstones();
 
+            // 1. Seed with remote habits (excluding deleted tombstones)
             remoteList.forEach(h => {
-                if (h && h.id) habitMap.set(h.id, { ...h, history: { ...(h.history || {}) } });
+                if (!h || !h.id) return;
+                if (tombstones.has(String(h.id))) return;
+                habitMap.set(String(h.id), { ...h, history: { ...(h.history || {}) } });
             });
 
+            // 2. Reconcile with local habits
             localList.forEach(h => {
                 if (!h || !h.id) return;
-                if (!habitMap.has(h.id)) {
-                    habitMap.set(h.id, { ...h, history: { ...(h.history || {}) } });
+                const id = String(h.id);
+                if (tombstones.has(id)) return;
+
+                if (!habitMap.has(id)) {
+                    habitMap.set(id, { ...h, history: { ...(h.history || {}) } });
                 } else {
-                    const existing = habitMap.get(h.id);
-                    const mergedHistory = { ...existing.history };
-                    if (h.history) {
-                        for (const [date, count] of Object.entries(h.history)) {
-                            mergedHistory[date] = Math.max(Number(count) || 0, Number(mergedHistory[date]) || 0);
+                    const existing = habitMap.get(id);
+                    const localTime = Number(h.updatedAt || 0);
+                    const remoteTime = Number(existing.updatedAt || 0);
+
+                    const newer = (localTime > remoteTime) ? h : existing;
+                    const older = (localTime > remoteTime) ? existing : h;
+
+                    const mergedHistory = { ...(older.history || {}) };
+                    if (newer.history && typeof newer.history === 'object') {
+                        for (const [date, count] of Object.entries(newer.history)) {
+                            mergedHistory[date] = Number(count) || 0;
                         }
                     }
-                    habitMap.set(h.id, {
-                        ...existing,
-                        ...h,
-                        history: mergedHistory
+
+                    habitMap.set(id, {
+                        ...older,
+                        ...newer,
+                        history: mergedHistory,
+                        updatedAt: Math.max(localTime, remoteTime) || Date.now()
                     });
                 }
             });
@@ -439,6 +476,8 @@ SELECT count(*) AS total_keys FROM public.workspace_state;`;
             const remoteObj = typeof remoteRaw === 'object' && remoteRaw !== null ? remoteRaw : JSON.parse(remoteRaw || '{}');
             const periods = ['yearly', 'monthly', 'weekly'];
             const merged = {};
+            let deleted = {};
+            try { deleted = JSON.parse(localStorage.getItem('dashboard_deleted_objectives') || '{}'); } catch (_) {}
 
             periods.forEach(p => {
                 const locList = Array.isArray(localObj[p]) ? localObj[p] : [];
@@ -446,11 +485,13 @@ SELECT count(*) AS total_keys FROM public.workspace_state;`;
                 const objMap = new Map();
 
                 remList.forEach(item => {
-                    if (item && item.id) objMap.set(item.id, { ...item });
+                    if (item && item.id && !deleted[item.id]) objMap.set(item.id, { ...item });
                 });
 
                 locList.forEach(item => {
                     if (!item || !item.id) return;
+                    // A stale device must not restore a deleted goal/target.
+                    if (deleted[item.id]) return;
                     const normText = (item.text || '').trim().toLowerCase();
                     let key = item.id;
                     if (!objMap.has(key) && normText) {
@@ -558,7 +599,18 @@ SELECT count(*) AS total_keys FROM public.workspace_state;`;
         }
 
         // Deleted task tombstones: union of records
-        if (key === 'dashboard_deleted_tasks') {
+        if (key === 'dashboard_deleted_tasks' || key === 'dashboard_deleted_habits') {
+            try {
+                const locObj = typeof localVal === 'object' && localVal !== null ? localVal : JSON.parse(localVal || '{}');
+                const remObj = typeof remoteVal === 'object' && remoteVal !== null ? remoteVal : JSON.parse(remoteVal || '{}');
+                return JSON.stringify({ ...remObj, ...locObj });
+            } catch {
+                return deserializeValue(remoteVal);
+            }
+        }
+
+        // Objective tombstones are a map of objective ID -> deletion time.
+        if (key === 'dashboard_deleted_objectives') {
             try {
                 const locObj = typeof localVal === 'object' && localVal !== null ? localVal : JSON.parse(localVal || '{}');
                 const remObj = typeof remoteVal === 'object' && remoteVal !== null ? remoteVal : JSON.parse(remoteVal || '{}');
@@ -599,8 +651,11 @@ SELECT count(*) AS total_keys FROM public.workspace_state;`;
                     } finally {
                         isApplyingRemote = false;
                     }
-                    window.dispatchEvent(new CustomEvent('workspace-synced', { detail: { appliedCount: 1, source: 'tab_broadcast' } }));
-                    window.dispatchEvent(new StorageEvent('storage', { key: data.key }));
+                    window.dispatchEvent(new CustomEvent('workspace-synced', { detail: { appliedCount: 1, key: data.key, source: 'tab_broadcast' } }));
+                    window.dispatchEvent(new StorageEvent('storage', {
+                        key: data.key,
+                        newValue: typeof data.value === 'string' ? data.value : JSON.stringify(data.value)
+                    }));
                 }
             };
         } catch (_) {}
@@ -713,7 +768,10 @@ SELECT count(*) AS total_keys FROM public.workspace_state;`;
             setStatus('synced', 'Live update received from cloud');
 
             window.dispatchEvent(new CustomEvent('workspace-synced', { detail: { key: record.key, source: 'realtime' } }));
-            window.dispatchEvent(new StorageEvent('storage', { key: record.key }));
+            window.dispatchEvent(new StorageEvent('storage', {
+                key: record.key,
+                newValue: typeof merged === 'string' ? merged : JSON.stringify(merged)
+            }));
         }
     }
 
@@ -956,7 +1014,8 @@ SELECT count(*) AS total_keys FROM public.workspace_state;`;
         initRealtimeWebSocket();
 
         window.dispatchEvent(new CustomEvent('workspace-synced', { detail: { appliedCount: appliedFromRemote, pushedCount: needPushToRemote.length } }));
-        window.dispatchEvent(new StorageEvent('storage', { key: 'dashboard_todos' }));
+        window.dispatchEvent(new StorageEvent('storage', { key: 'dashboard_todos', newValue: localStorage.getItem('dashboard_todos') }));
+        window.dispatchEvent(new StorageEvent('storage', { key: 'dashboard_habits', newValue: localStorage.getItem('dashboard_habits') }));
 
         return { success: true, updatedLocally: appliedFromRemote, pushed: needPushToRemote.length };
     }
@@ -996,7 +1055,8 @@ SELECT count(*) AS total_keys FROM public.workspace_state;`;
         setStatus('synced', `Pulled ${count} items from Supabase`);
 
         window.dispatchEvent(new CustomEvent('workspace-synced', { detail: { appliedCount: count } }));
-        window.dispatchEvent(new StorageEvent('storage', { key: 'dashboard_todos' }));
+        window.dispatchEvent(new StorageEvent('storage', { key: 'dashboard_todos', newValue: localStorage.getItem('dashboard_todos') }));
+        window.dispatchEvent(new StorageEvent('storage', { key: 'dashboard_habits', newValue: localStorage.getItem('dashboard_habits') }));
         return { success: true, count };
     }
 
