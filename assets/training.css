@@ -930,3 +930,29 @@ body {
         display: none;
     }
 }
+
+/* Supabase Cloud Sync */
+.cloud-sync-btn {
+    position: relative;
+}
+.cloud-status-dot {
+    position: absolute;
+    bottom: 3px;
+    right: 3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1.5px solid var(--bg-card, #1e293b);
+    background-color: #64748b;
+    transition: background-color 0.25s, box-shadow 0.25s;
+}
+.cloud-status-dot.status-synced { background-color: #10b981; box-shadow: 0 0 5px #10b981; }
+.cloud-status-dot.status-syncing { background-color: #38bdf8; box-shadow: 0 0 5px #38bdf8; animation: pulse-sync 1.2s infinite; }
+.cloud-status-dot.status-needs_setup { background-color: #f59e0b; box-shadow: 0 0 5px #f59e0b; }
+.cloud-status-dot.status-error { background-color: #ef4444; box-shadow: 0 0 5px #ef4444; }
+.cloud-status-dot.status-offline { background-color: #64748b; }
+@keyframes pulse-sync {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+

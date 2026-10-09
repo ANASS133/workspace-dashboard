@@ -33,6 +33,10 @@
                 <span class="fajr-badge">🌅 Post-Fajr</span>
             </div>
             <div class="header-right">
+                <button type="button" class="icon-btn cloud-sync-btn" id="cloudSyncBtn" onclick="if(window.WorkspaceSync) window.WorkspaceSync.syncNow();" title="Supabase Cloud Database" aria-label="Supabase Cloud Database">
+                    <i data-lucide="cloud" style="width: 15px; height: 15px;"></i>
+                    <span class="cloud-status-dot status-checking"></span>
+                </button>
                 <button type="button" class="icon-btn" id="soundToggleBtn" title="Toggle Sound FX" aria-label="Toggle Sound">
                     <i data-lucide="volume-2" style="width: 15px; height: 15px;"></i>
                 </button>
@@ -170,6 +174,7 @@
         </aside>
     </main>
 
-    <script src="./assets/training.js?v=6"></script>
+    <script src="./assets/supabase-sync.js?v=3"></script>
+    <script src="./assets/training.js?v=7"></script>
 </body>
 </html>

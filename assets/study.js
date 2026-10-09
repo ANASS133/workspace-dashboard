@@ -839,6 +839,18 @@
 
         // Select initial track
         selectTrack(activeTrackId);
+
+        if (window.WorkspaceSync && typeof window.WorkspaceSync.init === 'function') {
+            window.WorkspaceSync.init();
+        }
+        window.addEventListener('workspace-synced', () => {
+            try {
+                progressMap = JSON.parse(localStorage.getItem(STORAGE_KEY_PROGRESS)) || {};
+                notesMap = JSON.parse(localStorage.getItem(STORAGE_KEY_NOTES)) || {};
+            } catch {}
+            buildFastIndexes();
+            selectTrack(activeTrackId);
+        });
     }
 
     if (document.readyState === 'loading') {

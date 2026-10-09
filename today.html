@@ -38,6 +38,10 @@
                 <span>FOCUS MODE</span>
             </div>
             <div class="nav-actions">
+                <button type="button" class="nav-icon-btn cloud-sync-btn" id="cloudSyncBtn" onclick="if(window.WorkspaceSync) window.WorkspaceSync.syncNow();" title="Supabase Cloud Database" aria-label="Supabase Cloud Database">
+                    <i data-lucide="cloud" class="nav-icon"></i>
+                    <span class="cloud-status-dot status-checking"></span>
+                </button>
                 <button type="button" class="nav-icon-btn" id="timerToggleBtn" title="Toggle Focus Timer" aria-label="Toggle Focus Timer">
                     <i data-lucide="timer" class="nav-icon"></i>
                 </button>
@@ -167,7 +171,8 @@
     <!-- Confetti canvas for completion celebration -->
     <canvas id="celebrationCanvas" class="celebration-canvas" aria-hidden="true"></canvas>
 
-    <script src="./assets/task-schedule.js?v=2"></script>
-    <script src="./assets/today.js?v=2"></script>
+    <script src="./assets/task-schedule.js?v=3"></script>
+    <script src="./assets/supabase-sync.js?v=3"></script>
+    <script src="./assets/today.js?v=3"></script>
 </body>
 </html>

@@ -37,6 +37,10 @@
                 </span>
             </div>
             <div class="header-right">
+                <button type="button" class="icon-btn cloud-sync-btn" id="cloudSyncBtn" onclick="if(window.WorkspaceSync) window.WorkspaceSync.syncNow();" title="Supabase Cloud Database" aria-label="Supabase Cloud Database">
+                    <i data-lucide="cloud" style="width: 15px; height: 15px;"></i>
+                    <span class="cloud-status-dot status-checking"></span>
+                </button>
                 <button type="button" class="icon-btn" title="Reset Current Track Progress" onclick="window.academyResetTrackProgress()" aria-label="Reset Progress">
                     <i data-lucide="rotate-ccw" style="width: 15px; height: 15px;"></i>
                 </button>
@@ -156,6 +160,7 @@
 
     <!-- Scripts -->
     <script src="./assets/curriculum-data.js?v=1"></script>
-    <script src="./assets/study.js?v=3"></script>
+    <script src="./assets/supabase-sync.js?v=3"></script>
+    <script src="./assets/study.js?v=4"></script>
 </body>
 </html>

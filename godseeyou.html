@@ -26,6 +26,7 @@
             <a class="focus-mode-link" href="./training.html" style="color: #f97316; border: 1px solid rgba(249, 115, 22, 0.3); background: rgba(249, 115, 22, 0.1);"><i data-lucide="dumbbell" class="icon" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>Training</a>
             <a class="focus-mode-link" href="./study.html" style="color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.1);"><i data-lucide="graduation-cap" class="icon" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>Academy</a>
             <div class="productivity-streak" title="Consecutive days with all tasks due today and daily habits completed"><i data-lucide="flame" class="icon"></i><span id="productivityStreak">0-Day Streak</span></div>
+            <button class="header-icon-btn cloud-sync-btn" id="cloudSyncStatusBtn" type="button" onclick="openDataManager('supabase')" title="Supabase Cloud Database" aria-label="Supabase Cloud Database"><i data-lucide="cloud" class="icon"></i><span class="cloud-status-dot status-checking"></span></button>
             <button class="header-icon-btn" type="button" onclick="openDataManager()" title="Data, backups & archive" aria-label="Open data manager"><i data-lucide="database-backup" class="icon"></i></button>
             <button type="button" class="secret-trigger" onclick="promptSecretCode()" title="Unlock Area" aria-label="Unlock area"><i data-lucide="lock-keyhole" class="icon"></i></button>
         </div>
@@ -346,9 +347,149 @@
 <div class="modal" id="dataManagerModal">
   <div class="modal-content utility-modal wide" role="dialog" aria-modal="true" aria-labelledby="dataManagerTitle">
     <h2 id="dataManagerTitle" class="utility-title"><i data-lucide="database-backup" class="icon"></i> Data & backups</h2>
-    <p class="utility-note">Your data stays in this browser. Export a backup regularly so a browser reset or device change does not erase your workspace.</p>
-    <div class="utility-actions left"><button class="rollover-primary" onclick="exportDashboardBackup()"><i data-lucide="download" class="icon"></i> Export backup</button><label class="rollover-secondary file-label"><i data-lucide="upload" class="icon"></i> Import backup<input id="backupFileInput" type="file" accept="application/json,.json" onchange="importDashboardBackup(event)"></label><button class="rollover-secondary" onclick="renderArchiveViewer()"><i data-lucide="archive" class="icon"></i> Refresh archive</button></div>
-    <div id="archiveViewer" class="archive-viewer"></div>
+    <p class="utility-note">Your workspace is local-first, synchronized with Supabase, and accessible across all your devices.</p>
+
+    <!-- Sub-Tabs Navigation -->
+    <div class="data-tabs-bar" role="tablist">
+        <button type="button" class="data-tab-btn active" data-tab="cloud" onclick="switchDataTab('cloud')"><i data-lucide="cloud" class="icon"></i> Cloud Sync</button>
+        <button type="button" class="data-tab-btn" data-tab="snapshots" onclick="switchDataTab('snapshots')"><i data-lucide="history" class="icon"></i> Time Machine</button>
+        <button type="button" class="data-tab-btn" data-tab="pairing" onclick="switchDataTab('pairing')"><i data-lucide="qr-code" class="icon"></i> Mobile Pairing</button>
+        <button type="button" class="data-tab-btn" data-tab="local" onclick="switchDataTab('local')"><i data-lucide="hard-drive" class="icon"></i> Local &amp; Archive</button>
+    </div>
+
+    <!-- Tab 1: Cloud Sync -->
+    <div class="data-tab-content" id="dataTabCloud">
+        <div class="supabase-cloud-panel" id="supabaseCloudPanel">
+            <div class="supabase-panel-header">
+                <div class="supabase-title-wrap">
+                    <div class="supabase-icon-badge">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="supabase-heading">Supabase Cloud Database</h3>
+                        <span class="supabase-endpoint-url">https://cpagjchpwbsqjwnjnigk.supabase.co</span>
+                    </div>
+                </div>
+                <div class="supabase-status-pill">
+                    <span class="cloud-status-dot status-checking"></span>
+                    <span id="supabaseModalStatusText">Checking connection...</span>
+                </div>
+            </div>
+
+            <!-- Table Setup Notice -->
+            <div class="supabase-setup-alert" id="supabaseSetupAlert" style="display: none;">
+                <div class="setup-alert-header">
+                    <i data-lucide="alert-triangle" class="icon" style="color: #f59e0b;"></i>
+                    <strong>Table Setup Required in Supabase</strong>
+                </div>
+                <p class="setup-alert-desc">
+                    Your Supabase project is linked, but table <code>workspace_state</code> needs to be created in your Supabase SQL Editor.
+                </p>
+                <div class="setup-alert-actions">
+                    <button type="button" class="btn-copy-sql" onclick="copySupabaseSql()">
+                        <i data-lucide="copy" class="icon"></i> Copy SQL Setup Query
+                    </button>
+                    <a href="https://supabase.com/dashboard/project/cpagjchpwbsqjwnjnigk/sql/new" target="_blank" rel="noopener noreferrer" class="sql-editor-link">
+                        <i data-lucide="external-link" class="icon"></i> Open SQL Editor
+                    </a>
+                    <button type="button" class="btn-cloud-action" onclick="checkSupabaseConnection()">
+                        <i data-lucide="refresh-cw" class="icon"></i> Check Again
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="supabase-actions-row">
+                <button type="button" class="btn-cloud-action" onclick="triggerManualSync()" title="Smart two-way synchronization">
+                    <i data-lucide="refresh-cw" class="icon"></i> Sync Now
+                </button>
+                <button type="button" class="btn-cloud-action" onclick="triggerPushToCloud()" title="Upload all local items to Supabase">
+                    <i data-lucide="upload-cloud" class="icon"></i> Push to Cloud
+                </button>
+                <button type="button" class="btn-cloud-action" onclick="triggerPullFromCloud()" title="Download cloud items to local workspace">
+                    <i data-lucide="download-cloud" class="icon"></i> Pull from Cloud
+                </button>
+                <button type="button" class="btn-cloud-action" onclick="toggleSqlSnippet()" title="View or copy SQL schema">
+                    <i data-lucide="code" class="icon"></i> View SQL
+                </button>
+            </div>
+
+            <!-- Collapsible SQL Code Preview -->
+            <div class="supabase-sql-snippet" id="supabaseSqlSnippet" hidden>
+                <div class="snippet-header">
+                    <span>SQL Schema (<code>supabase-schema.sql</code>)</span>
+                    <button type="button" class="btn-snippet-copy" onclick="copySupabaseSql()"><i data-lucide="copy" class="icon"></i> Copy</button>
+                </div>
+                <pre><code id="supabaseSqlCodeBlock"></code></pre>
+            </div>
+
+            <div class="supabase-meta-info">
+                <span>Last synced: <strong id="supabaseLastSyncLabel">Never</strong></span>
+                <span class="supabase-mode-pill realtime-off" id="supabaseRealtimeBadge"><span class="realtime-dot off"></span> Realtime Inactive</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Time Machine Snapshots -->
+    <div class="data-tab-content" id="dataTabSnapshots" hidden>
+        <div class="snapshots-panel">
+            <div class="snapshots-header">
+                <h3 class="snapshots-title"><i data-lucide="history" class="icon" style="color: #38bdf8;"></i> Cloud Time Machine</h3>
+                <p class="snapshots-desc">Create point-in-time cloud snapshots to backup your tasks, habits, and workouts before major changes.</p>
+            </div>
+            <div class="snapshot-create-row">
+                <input type="text" id="snapshotLabelInput" class="snapshot-input" placeholder="Snapshot name (e.g. Before month end, Clean slate)..." maxlength="50">
+                <button type="button" class="btn-create-snapshot" onclick="createDashboardSnapshot()"><i data-lucide="camera" class="icon"></i> Save Snapshot</button>
+            </div>
+            <div class="snapshots-list-header">
+                <span>Available Cloud Snapshots</span>
+                <button type="button" class="btn-refresh-snapshots" onclick="renderSnapshotViewer()"><i data-lucide="refresh-cw" class="icon"></i> Refresh</button>
+            </div>
+            <div id="snapshotsList" class="snapshots-list"></div>
+        </div>
+    </div>
+
+    <!-- Tab 3: Mobile Pairing -->
+    <div class="data-tab-content" id="dataTabPairing" hidden>
+        <div class="pairing-panel">
+            <div class="pairing-header">
+                <h3 class="pairing-title"><i data-lucide="qr-code" class="icon" style="color: #10b981;"></i> Mobile Device Pairing</h3>
+                <p class="pairing-desc">Scan this QR code with your phone camera or copy the pairing link to instantly connect your mobile browser.</p>
+            </div>
+            <div class="pairing-content-grid">
+                <div class="qr-container">
+                    <img id="pairingQrImg" class="pairing-qr-img" alt="Device Pairing QR Code" src="">
+                    <small class="qr-tip">Scan with phone camera</small>
+                </div>
+                <div class="pairing-details">
+                    <label class="pairing-label">Direct Pairing Link</label>
+                    <div class="pairing-input-group">
+                        <input type="text" id="pairingUrlInput" class="pairing-url-input" readonly>
+                        <button type="button" class="btn-copy-pairing" onclick="copyPairingLink()"><i data-lucide="copy" class="icon"></i> Copy</button>
+                    </div>
+                    <div class="pairing-instructions">
+                        <h4>📱 Setup as mobile app:</h4>
+                        <ol>
+                            <li>Open link on phone (Safari on iPhone, Chrome on Android).</li>
+                            <li>Tap <strong>Share / Menu</strong> → <strong>Add to Home Screen</strong>.</li>
+                            <li>Your workspace runs full-screen as an app and syncs in real time!</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 4: Local & Archive -->
+    <div class="data-tab-content" id="dataTabLocal" hidden>
+        <div class="utility-actions left">
+            <button class="rollover-primary" onclick="exportDashboardBackup()"><i data-lucide="download" class="icon"></i> Export backup</button>
+            <label class="rollover-secondary file-label"><i data-lucide="upload" class="icon"></i> Import backup<input id="backupFileInput" type="file" accept="application/json,.json" onchange="importDashboardBackup(event)"></label>
+            <button class="rollover-secondary" onclick="renderArchiveViewer()"><i data-lucide="archive" class="icon"></i> Refresh archive</button>
+        </div>
+        <div id="archiveViewer" class="archive-viewer"></div>
+    </div>
+
     <div class="utility-actions"><button class="close-btn" onclick="closeDataManager()">Close</button></div>
   </div>
 </div>
@@ -365,8 +506,9 @@
     </div>
 </div>
 
-<script src="./assets/task-schedule.js?v=2"></script>
-<script src="./assets/app.js?v=3"></script>
-<script src="./assets/habits.js?v=2"></script>
+<script src="./assets/task-schedule.js?v=3"></script>
+<script src="./assets/supabase-sync.js?v=3"></script>
+<script src="./assets/app.js?v=5"></script>
+<script src="./assets/habits.js?v=3"></script>
 </body>
 </html>

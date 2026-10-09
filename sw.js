@@ -1,4 +1,4 @@
-const CACHE_NAME = 'workspace-dashboard-v20';
+const CACHE_NAME = 'workspace-dashboard-v22';
 const LUCIDE_URL = 'https://unpkg.com/lucide@1.33.0/dist/umd/lucide.min.js';
 const APP_SHELL = [
   './assets/habits.js?v=2',
@@ -16,8 +16,9 @@ const APP_SHELL = [
   './assets/study.js?v=3',
   './assets/curriculum-data.js?v=1',
   './assets/task-schedule.js?v=2',
+  './assets/supabase-sync.js?v=1',
   './assets/styles.css?v=2',
-  './assets/app.js?v=3',
+  './assets/app.js?v=4',
   './manifest.webmanifest',
   './icons/app-icon.svg'
 ];
@@ -77,3 +78,15 @@ self.addEventListener('fetch', event => {
       .catch(() => new Response('Offline', { status: 503, statusText: 'Offline' }))
   );
 });
+
+// Background Sync for offline pushes when connectivity returns
+self.addEventListener('sync', event => {
+  if (event.tag === 'supabase-sync-queue') {
+    event.waitUntil(
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => client.postMessage({ type: 'FLUSH_OFFLINE_QUEUE' }));
+      })
+    );
+  }
+});
+

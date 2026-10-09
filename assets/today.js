@@ -14,100 +14,48 @@ function cleanText(value, max = 200) {
 }
 
 /**
- * Seed default tasks if dashboard storage is empty or contains no tasks at all.
- * Matches the requested initial state:
- * - Must Do: Read Surat Al-Baqarah (completed), German 30 min (completed)
- * - Should Do: Cybersecurity lesson (pending)
- * - Optional: Work on personal project (pending)
- * Result: 2 / 4 completed
+ * Read focus tasks directly from synchronized storage.
+ * Deduplicates by normalized title within each category and resolves conflicts.
  */
-function seedDefaultTasksIfEmpty(today) {
-    const raw = localStorage.getItem('dashboard_todos');
-    let tasks = null;
-    try {
-        tasks = JSON.parse(raw);
-    } catch {
-        tasks = null;
-    }
-
-    const hasAnyTasks = tasks && typeof tasks === 'object' && !Array.isArray(tasks) &&
-        focusCategories.some(cat => Array.isArray(tasks[cat]) && tasks[cat].length > 0);
-
-    if (hasAnyTasks) return tasks;
-
-    const initialTasks = {
-        din: [
-            {
-                id: createLocalId(),
-                text: 'Read Surat Al-Baqarah',
-                completed: true,
-                priority: 'high',
-                recurrence: 'habit',
-                dueDate: today,
-                scheduleStart: today,
-                completedDates: [today],
-                subtasks: []
-            }
-        ],
-        lang: [
-            {
-                id: createLocalId(),
-                text: 'German 30 min',
-                completed: true,
-                priority: 'high',
-                recurrence: 'habit',
-                dueDate: today,
-                scheduleStart: today,
-                completedDates: [today],
-                subtasks: []
-            }
-        ],
-        cyber: [
-            {
-                id: createLocalId(),
-                text: 'Cybersecurity lesson',
-                completed: false,
-                priority: 'medium',
-                recurrence: 'habit',
-                dueDate: today,
-                scheduleStart: today,
-                completedDates: [],
-                subtasks: []
-            }
-        ],
-        train: [],
-        work: [],
-        proj: [
-            {
-                id: createLocalId(),
-                text: 'Work on personal project',
-                completed: false,
-                priority: 'low',
-                recurrence: 'once',
-                dueDate: today,
-                scheduleStart: today,
-                completedDates: [],
-                subtasks: []
-            }
-        ]
-    };
-
-    localStorage.setItem('dashboard_todos', JSON.stringify(initialTasks));
-    return initialTasks;
-}
-
 function readFocusTasks() {
-    const today = localDateKey();
-    const seeded = seedDefaultTasksIfEmpty(today);
-    let tasks = seeded;
+    let tasks = {};
     try {
-        const stored = JSON.parse(localStorage.getItem('dashboard_todos') || '{}');
-        if (stored && typeof stored === 'object' && !Array.isArray(stored)) {
-            tasks = stored;
+        const raw = localStorage.getItem('dashboard_todos');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                tasks = parsed;
+            }
         }
     } catch {
-        // Fallback to seeded
+        tasks = {};
     }
+
+    // Ensure categories exist and deduplicate by normalized title within each category
+    focusCategories.forEach(cat => {
+        if (!Array.isArray(tasks[cat])) {
+            tasks[cat] = [];
+            return;
+        }
+        const seen = new Map();
+        tasks[cat].forEach(t => {
+            if (!t || typeof t.text !== 'string') return;
+            const norm = t.text.trim().toLowerCase();
+            if (!norm) return;
+            if (!seen.has(norm)) {
+                seen.set(norm, t);
+            } else {
+                const existing = seen.get(norm);
+                const tTime = Number(t.updatedAt || 0);
+                const exTime = Number(existing.updatedAt || 0);
+                if (tTime > exTime) {
+                    seen.set(norm, t);
+                }
+            }
+        });
+        tasks[cat] = Array.from(seen.values());
+    });
+
     return tasks;
 }
 
@@ -320,6 +268,7 @@ function completeFocusTask(entry, date, completed) {
         if (!task.dueDate || task.dueDate === date || task.recurrence === 'once') {
             task.completed = completed;
         }
+        task.updatedAt = Date.now();
 
         localStorage.setItem('dashboard_todos', JSON.stringify(tasks));
 
@@ -352,13 +301,33 @@ function completeFocusTask(entry, date, completed) {
 function deleteFocusTask(entry) {
     try {
         const tasks = readFocusTasks();
-        if (entry.task.id) {
-            tasks[entry.category] = (tasks[entry.category] || []).filter(t => t.id !== entry.task.id);
-        } else {
-            tasks[entry.category]?.splice(entry.index, 1);
-        }
+        const taskId = entry.task.id;
+
+        // 1. Record in tombstones by ID only
+        let tombstones = {};
+        try { tombstones = JSON.parse(localStorage.getItem('dashboard_deleted_tasks') || '{}'); } catch {}
+        if (taskId) tombstones[taskId] = Date.now();
+        localStorage.setItem('dashboard_deleted_tasks', JSON.stringify(tombstones));
+
+        // 2. Remove task from all categories
+        focusCategories.forEach(cat => {
+            if (Array.isArray(tasks[cat])) {
+                tasks[cat] = tasks[cat].filter(t => {
+                    if (!t) return false;
+                    if (taskId && t.id === taskId) return false;
+                    return true;
+                });
+            }
+        });
+
         localStorage.setItem('dashboard_todos', JSON.stringify(tasks));
         renderFocus();
+
+        // 3. Push immediately to Supabase
+        if (window.WorkspaceSync && typeof window.WorkspaceSync.schedulePush === 'function') {
+            window.WorkspaceSync.schedulePush('dashboard_deleted_tasks', JSON.stringify(tombstones));
+            window.WorkspaceSync.schedulePush('dashboard_todos', JSON.stringify(tasks));
+        }
     } catch {
         showFocusError('Could not remove task. Please try again.');
     }
@@ -395,11 +364,31 @@ function addFocusTask(priority, text) {
             dueDate: today,
             scheduleStart: today,
             completedDates: [],
-            subtasks: []
+            subtasks: [],
+            updatedAt: Date.now()
         };
 
         tasks[category].unshift(newTask);
+
+        // Clear any deletion tombstone for this task ID or text
+        try {
+            let tombstones = JSON.parse(localStorage.getItem('dashboard_deleted_tasks') || '{}');
+            let changed = false;
+            if (tombstones[newTask.id]) { delete tombstones[newTask.id]; changed = true; }
+            const normText = clean.toLowerCase();
+            if (normText && tombstones[normText]) { delete tombstones[normText]; changed = true; }
+            if (changed) {
+                localStorage.setItem('dashboard_deleted_tasks', JSON.stringify(tombstones));
+                if (window.WorkspaceSync && typeof window.WorkspaceSync.schedulePush === 'function') {
+                    window.WorkspaceSync.schedulePush('dashboard_deleted_tasks', JSON.stringify(tombstones));
+                }
+            }
+        } catch (_) {}
+
         localStorage.setItem('dashboard_todos', JSON.stringify(tasks));
+        if (window.WorkspaceSync && typeof window.WorkspaceSync.schedulePush === 'function') {
+            window.WorkspaceSync.schedulePush('dashboard_todos', JSON.stringify(tasks));
+        }
         renderFocus();
     } catch {
         showFocusError('Could not add task. Please try again.');
@@ -725,6 +714,24 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     initFocusTimer();
     initQuickAdd();
     renderFocus();
+}
+
+window.addEventListener('workspace-synced', () => {
+    renderFocus();
+});
+window.addEventListener('supabase-sync-status', (e) => {
+    if (e.detail?.status === 'synced') {
+        renderFocus();
+    }
+});
+window.addEventListener('storage', (e) => {
+    if (e.key === 'dashboard_todos' || e.key === 'dashboard_deleted_tasks') {
+        renderFocus();
+    }
+});
+if (window.WorkspaceSync && typeof window.WorkspaceSync.init === 'function') {
+    window.WorkspaceSync.init();
+    window.WorkspaceSync.syncNow();
 }
 
 // Service Worker Registration

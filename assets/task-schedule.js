@@ -44,4 +44,5 @@
     function setOccurrenceCompleted(todo, key, completed) {
         todo.completedDates = (todo.completedDates || []).filter(date => date !== key);
         if (completed) todo.completedDates.push(key);
+        todo.updatedAt = Date.now();
     }

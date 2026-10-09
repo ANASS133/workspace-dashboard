@@ -1293,6 +1293,15 @@
         HistoryProgressPage.init();
 
         refreshIcons();
+
+        if (window.WorkspaceSync && typeof window.WorkspaceSync.init === 'function') {
+            window.WorkspaceSync.init();
+        }
+        window.addEventListener('workspace-synced', () => {
+            WeeklyProgramPage.render();
+            HistoryProgressPage.render();
+            refreshIcons();
+        });
     });
 
 })();
